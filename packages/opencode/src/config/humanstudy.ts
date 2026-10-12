@@ -65,6 +65,9 @@ export function humanstudyDefaults(env: Record<string, string | undefined> = pro
     share: "disabled",
     experimental: { openTelemetry: false },
     // Ask before editing files, running shell commands, or touching paths outside the project.
+    // The desktop app records complete transcripts: tool parts carry full input/output up to 64 KB
+    // (upstream: 50 KB). Larger output is still saved in full to the truncation dir (metadata.outputPath).
+    tool_output: { max_bytes: 65536 },
     permission: { edit: "ask", bash: "ask", external_directory: "ask" },
     ...(provider
       ? {
