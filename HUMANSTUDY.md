@@ -58,3 +58,13 @@ Audit notes for upstream v1.18.21 (re-check on each rebase):
   (upstream behaviour; falls back to `CLAUDE.md`, and also reads `~/.config/opencode/AGENTS.md` and
   `~/.claude/CLAUDE.md`). Skills load from `.opencode/{skill,skills}/**/SKILL.md` (also
   `.claude/skills` and `.agents/skills`). Both unchanged.
+
+### 4. Tool events carry full input and output
+
+Upstream already publishes the complete tool part in `message.part.updated` (the whole part is
+cloned into the event: `state.input`, `state.output`, `state.metadata`). The only cut is
+the model-facing truncation of tool output at 2000 lines / 50 KB, with the full text written to a
+file named in `metadata.outputPath`. To satisfy "up to 64 KB in the event" the baseline sets
+`tool_output.max_bytes = 65536` (a config default, overridable). Output beyond that is
+truncated for the event exactly as it is for the model; the full text is in `metadata.outputPath`.
+The `read` tool keeps its own upstream 50 KB paging cap.
