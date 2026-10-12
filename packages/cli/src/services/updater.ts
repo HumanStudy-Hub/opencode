@@ -247,13 +247,14 @@ const make = Effect.gen(function* () {
   const removalCommand = (method: Method) => {
     if (method === "winget") return ["winget", "uninstall", ...wingetArgs]
     if (method === "curl" || method === "brew" || !installedPackage) return undefined
-    return {
+    const commands = {
       npm: ["npm", "uninstall", "--global", installedPackage],
       pnpm: ["pnpm", "remove", "--global", installedPackage],
       bun: ["bun", "remove", "--global", installedPackage],
       yarn: ["yarn", "global", "remove", installedPackage],
       vp: ["vp", "uninstall", "-g", installedPackage],
-    }[method]
+    }
+    return commands[method]
   }
 
   const removal = (method: Method) => {
