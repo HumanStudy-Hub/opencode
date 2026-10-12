@@ -535,7 +535,22 @@ const AliasedModelNotices = {
             id: "msg_story_fast_nano",
             type: "model-switched",
             model: { providerID: "company-gateway", id: "fast-nano", variant: "xhigh" },
+            previous: { providerID: "company-gateway", id: "long-context" },
             time: { created: 1_735_689_590_000 },
+          },
+          {
+            id: "msg_story_fast_nano_default",
+            type: "model-switched",
+            model: { providerID: "company-gateway", id: "fast-nano" },
+            previous: { providerID: "company-gateway", id: "fast-nano", variant: "xhigh" },
+            time: { created: 1_735_689_590_100 },
+          },
+          {
+            id: "msg_story_fast_nano_high",
+            type: "model-switched",
+            model: { providerID: "company-gateway", id: "fast-nano", variant: "high" },
+            previous: { providerID: "company-gateway", id: "fast-nano" },
+            time: { created: 1_735_689_590_200 },
           },
           {
             id: "msg_story_long_context",

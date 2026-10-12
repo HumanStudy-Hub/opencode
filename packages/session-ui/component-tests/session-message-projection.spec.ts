@@ -39,13 +39,26 @@ story("renders aliased and long custom model notices", async ({ mount, page }) =
   const timeline = await mount("current-session-timeline-rows--conversation", { args: { scenario: "models" } })
   const shortName = "GPT-5.4 nano"
   const longName = "Company Gateway Extra Long Context Model for Narrow Timeline Layouts"
-  const short = timeline.locator('[data-slot="session-timeline-notice"]').filter({ hasText: shortName })
+  const short = timeline
+    .locator('[data-slot="session-timeline-notice"]')
+    .filter({ hasText: shortName })
+    .filter({ hasText: "xhigh" })
   const long = timeline.locator('[data-slot="session-timeline-notice"]').filter({ hasText: longName })
   await expect(short).toBeVisible()
   await expect(short.getByText(`Switched to ${shortName}`, { exact: true })).toBeVisible()
   await expect(short.locator('[data-slot="session-timeline-notice-variant"]')).toHaveText("xhigh")
   await expect(timeline.getByText("fast-nano", { exact: true })).toHaveCount(0)
   await expect(short.locator('[data-component="provider-icon"]')).toBeVisible()
+  const variantDefault = timeline
+    .locator('[data-slot="session-timeline-notice"]')
+    .filter({ hasText: "Switched variant to Default" })
+  const variantHigh = timeline
+    .locator('[data-slot="session-timeline-notice"]')
+    .filter({ hasText: "Switched variant to high" })
+  await expect(variantDefault.getByText("Switched variant to Default", { exact: true })).toBeVisible()
+  await expect(variantHigh.getByText("Switched variant to high", { exact: true })).toBeVisible()
+  await expect(variantDefault.locator('[data-slot="session-timeline-notice-variant"]')).toHaveCount(0)
+  await expect(variantHigh.locator('[data-slot="session-timeline-notice-variant"]')).toHaveCount(0)
   await expect(long).toBeVisible()
   await expect(long.locator('[data-component="provider-icon"]')).toBeVisible()
   await expect(long.locator('[data-slot="session-timeline-notice-variant"]')).toHaveCount(0)
