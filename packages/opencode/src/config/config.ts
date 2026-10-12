@@ -35,6 +35,7 @@ import { ConfigPlugin } from "./plugin"
 import { ConfigVariable } from "./variable"
 import { ConfigV2Compat } from "./v2-compat"
 import { Npm } from "@opencode-ai/core/npm"
+import { humanstudyDefaults } from "./humanstudy"
 import { withTransientReadRetry } from "@/util/effect-http-client"
 
 // Custom merge function that concatenates array fields instead of replacing them
@@ -329,7 +330,7 @@ const layer = Layer.effect(
       function* (ctx: InstanceContext) {
         const auth = yield* authSvc.all().pipe(Effect.orDie)
 
-        let result: Info = {}
+        let result: Info = humanstudyDefaults()
         const authEnv: Record<string, string> = {}
         const consoleManagedProviders = new Set<string>()
         let activeOrgName: string | undefined
