@@ -37,3 +37,24 @@ When `HUMANSTUDY_DESKTOP_KEY` is set, the baseline contains:
 Without the key nothing is added (no ghost, unauthenticated provider in the model list), and
 the desktop app may still pass its own `model` / `provider` through `OPENCODE_CONFIG_CONTENT`.
 The env vars are read when the server process starts.
+
+### 3. Safe defaults
+
+Same baseline object (lowest precedence, any config source overrides):
+
+- `share: "disabled"`, `autoupdate: false`
+- `experimental.openTelemetry: false`
+- `permission`: `edit: "ask"`, `bash: "ask"`, `external_directory: "ask"`
+
+Audit notes for upstream v1.18.21 (re-check on each rebase):
+
+- No analytics SDK exists in `packages/opencode` or `packages/core`. The only telemetry path is
+  OTLP export, active only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, plus AI SDK spans
+  when `experimental.openTelemetry` is true (now defaulted to false).
+- Network calls that remain, none carrying user content: the model catalog from
+  `https://models.opencode.ai` (set `OPENCODE_DISABLE_MODELS_FETCH=1` to stop it; an embedded
+  snapshot is used), and the npm install of `@opencode-ai/plugin` into config dirs.
+- Instructions: `AGENTS.md` is found by walking up from the working directory to the worktree root
+  (upstream behaviour; falls back to `CLAUDE.md`, and also reads `~/.config/opencode/AGENTS.md` and
+  `~/.claude/CLAUDE.md`). Skills load from `.opencode/{skill,skills}/**/SKILL.md` (also
+  `.claude/skills` and `.agents/skills`). Both unchanged.
