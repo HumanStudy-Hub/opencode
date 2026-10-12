@@ -4,6 +4,7 @@ import { Permission } from "@opencode/core/permission"
 import { Plugin } from "@opencode/core/plugin"
 import { PluginHost } from "@opencode/core/plugin/host"
 import { PluginPromise } from "@opencode/core/plugin/promise"
+import { QuestionTool } from "@opencode/core/tool/plugin/question"
 import { Tool } from "@opencode/core/tool"
 import { Session } from "@opencode/schema/session"
 import { SessionMessage } from "@opencode/schema/session-message"
@@ -110,32 +111,39 @@ it.live("Promise tools that wrap a declined tool keep the decline as a defect", 
   Effect.gen(function* () {
     const plugins = yield* Plugin.Service
     const tools = yield* Tool.Service
-    const declined = new Permission.DeclinedError()
+    const declines = { permission: new Permission.DeclinedError(), question: new QuestionTool.CancelledError() }
     yield* tools.transform((editor) =>
-      editor.add({
-        name: "guarded",
-        description: "Decline every call",
-        input: { type: "object", properties: {}, additionalProperties: false },
-        options: { codemode: false },
-        execute: () => Effect.die(declined),
-      }),
+      Object.entries(declines).forEach(([name, declined]) =>
+        editor.add({
+          name,
+          description: "Decline every call",
+          input: { type: "object", properties: {}, additionalProperties: false },
+          options: { codemode: false },
+          execute: () => Effect.die(declined),
+        }),
+      ),
     )
     yield* PluginPromise.fromPromise({
       id: "wrapping-tool",
       async setup(context) {
         await context.tool.transform((editor) =>
-          editor.update("guarded", (tool) => {
-            const original = tool.execute
-            tool.execute = (input, context) => original(input, context)
-          }),
+          Object.keys(declines).forEach((name) =>
+            editor.update(name, (tool) => {
+              const original = tool.execute
+              tool.execute = (input, context) => original(input, context)
+            }),
+          ),
         )
       },
     }).effect(yield* PluginHost.make(plugins))
 
-    const exit = yield* execute(yield* tools.snapshot(), "guarded")
-    expect(
-      Exit.isFailure(exit) &&
-        exit.cause.reasons.some((reason) => Cause.isDieReason(reason) && reason.defect === declined),
-    ).toBe(true)
+    const snapshot = yield* tools.snapshot()
+    for (const [name, declined] of Object.entries(declines)) {
+      const exit = yield* execute(snapshot, name)
+      expect(
+        Exit.isFailure(exit) &&
+          exit.cause.reasons.some((reason) => Cause.isDieReason(reason) && reason.defect === declined),
+      ).toBe(true)
+    }
   }),
 )

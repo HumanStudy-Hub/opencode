@@ -15,7 +15,7 @@ import { PluginHooks } from "./plugin/hooks.js"
 
 const PermissionEffect = Permission.Effect
 export { PermissionEffect as Effect }
-export { Rule, Ruleset } from "@opencode/schema/permission"
+export { DeclinedError, Rule, Ruleset } from "@opencode/schema/permission"
 const missingAgentPermissions: Permission.Ruleset = [{ action: "*", resource: "*", effect: "deny" }]
 
 export const ID = Permission.ID
@@ -60,8 +60,6 @@ export const AskResult = Schema.Struct({
 export type AskResult = typeof AskResult.Type
 
 export { Event } from "@opencode/schema/permission"
-
-export class DeclinedError extends Schema.TaggedError<DeclinedError>()("Permission.DeclinedError", {}) {}
 
 export class CorrectedError extends Schema.TaggedError<CorrectedError>()("Permission.CorrectedError", {
   feedback: Schema.String,
@@ -115,7 +113,7 @@ export class Service extends Context.Service<Service, Interface>()("@opencode/Pe
 interface Pending {
   readonly request: Request
   readonly agent?: Agent.ID
-  readonly deferred: Deferred.Deferred<void, DeclinedError | CorrectedError>
+  readonly deferred: Deferred.Deferred<void, Permission.DeclinedError | CorrectedError>
 }
 
 const layer = Layer.effect(
@@ -139,7 +137,7 @@ const layer = Layer.effect(
             requestID: item.request.id,
             reply: "reject",
           })
-          .pipe(Effect.ensuring(Deferred.fail(item.deferred, new DeclinedError()))),
+          .pipe(Effect.ensuring(Deferred.fail(item.deferred, new Permission.DeclinedError()))),
       )
       pending.clear()
     }).pipe(Effect.uninterruptible)
@@ -204,10 +202,10 @@ const layer = Layer.effect(
     const create = (request: Request, agent?: Agent.ID) =>
       Effect.uninterruptible(
         Effect.gen(function* () {
-          const deferred = yield* Deferred.make<void, DeclinedError | CorrectedError>()
+          const deferred = yield* Deferred.make<void, Permission.DeclinedError | CorrectedError>()
           const item = { request, agent, deferred }
           if (closed) {
-            yield* Deferred.fail(deferred, new DeclinedError())
+            yield* Deferred.fail(deferred, new Permission.DeclinedError())
             return item
           }
           if (pending.has(request.id))
@@ -230,7 +228,7 @@ const layer = Layer.effect(
 
     const assert = Effect.fn("Permission.assert")((input: AssertInput) =>
       Effect.gen(function* () {
-        if (closed) return yield* Effect.die(new DeclinedError())
+        if (closed) return yield* Effect.die(new Permission.DeclinedError())
         const result = yield* evaluateInput(input)
         return yield* Effect.uninterruptibleMask((restore) =>
           Effect.gen(function* () {
@@ -276,7 +274,7 @@ const layer = Layer.effect(
           if (input.reply === "reject") {
             yield* Deferred.fail(
               existing.deferred,
-              input.message ? new CorrectedError({ feedback: input.message }) : new DeclinedError(),
+              input.message ? new CorrectedError({ feedback: input.message }) : new Permission.DeclinedError(),
             )
             pending.delete(input.requestID)
             for (const [id, item] of pending) {
@@ -289,7 +287,7 @@ const layer = Layer.effect(
               // Feedback applies to the whole batch, so parallel asks don't end the step.
               yield* Deferred.fail(
                 item.deferred,
-                input.message ? new CorrectedError({ feedback: input.message }) : new DeclinedError(),
+                input.message ? new CorrectedError({ feedback: input.message }) : new Permission.DeclinedError(),
               )
               pending.delete(id)
             }

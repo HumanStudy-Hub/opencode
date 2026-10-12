@@ -29,11 +29,7 @@ export const Output = Schema.Struct({
 })
 export type Output = typeof Output.Type
 
-export class CancelledError extends Schema.TaggedError<CancelledError>()("QuestionTool.CancelledError", {}) {
-  override get message() {
-    return "The user dismissed this question"
-  }
-}
+export { CancelledError } from "@opencode/schema/question"
 
 export const toModelContent = (questions: ReadonlyArray<Question.Prompt>, answers: ReadonlyArray<Question.Answer>) => {
   const formatted = questions
@@ -94,7 +90,7 @@ export const Plugin = {
                   // model-facing feedback: the model continues instead of the step ending.
                   if (state.status === "cancelled" && state.message !== undefined)
                     return Effect.fail(new ToolFailure({ message: state.message }))
-                  if (state.status === "cancelled") return Effect.die(new CancelledError())
+                  if (state.status === "cancelled") return Effect.die(new Question.CancelledError())
                   const output = {
                     answers: input.questions.map((_, index): Question.Answer => {
                       const value = state.answer[`q${index}`]

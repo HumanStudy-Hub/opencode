@@ -1,7 +1,9 @@
+import { Permission } from "@opencode/schema/permission"
+import { Question } from "@opencode/schema/question"
 import { Tool } from "@opencode/schema/tool"
 import type { Rpc } from "@opencode/schema/rpc"
 import type { RpcCallOptions, RpcEventPayload } from "@opencode/client/promise/api"
-import { Cause, Effect, Exit, Schema, SchemaAST, Stream } from "effect"
+import { Effect, Schema, SchemaAST, Stream } from "effect"
 import type { Scope } from "effect"
 import { HttpApiEndpoint, HttpApiSchema } from "effect/http-api"
 import { define } from "../effect/plugin.js"
@@ -251,22 +253,13 @@ export function fromPromise(plugin: Plugin) {
         const promiseExecutor =
           (execute: Tool.Info["execute"]): Info["execute"] =>
           (input, context) =>
-            Effect.runPromiseExitWith(runtime)(
+            Effect.runPromiseWith(runtime)(
               execute(input, {
                 ...context,
                 progress: (update) => Effect.promise(() => context.progress(update)),
               }),
               { signal: context.signal },
-            ).then((exit) => {
-              if (Exit.isSuccess(exit)) return exit.value
-              const error = Cause.squash(exit.cause)
-              if (
-                error instanceof Object &&
-                exit.cause.reasons.some((reason) => Cause.isDieReason(reason) && reason.defect === error)
-              )
-                defects.add(error)
-              throw error
-            })
+            )
 
         const adaptApiMethod = <PromiseMethod>(
           endpoint: HttpApiEndpoint.Top,
@@ -630,10 +623,6 @@ function attempt<A>(evaluate: (signal: AbortSignal) => PromiseLike<A>) {
 
 type RuntimeSchema = Schema.Codec<unknown, unknown>
 
-// Defects rethrown by Promise tools that wrap Effect tools, such as permission declines, must stay
-// defects so a decline cannot become model-visible tool output.
-const defects = new WeakSet<object>()
-
 const executePromiseTool = (tool: Info, input: any, context: Tool.Context) =>
   Effect.tryPromise({
     try: (signal) =>
@@ -645,7 +634,9 @@ const executePromiseTool = (tool: Info, input: any, context: Tool.Context) =>
     catch: (error) => error,
   }).pipe(
     Effect.catch((error) => {
-      if (error instanceof Object && defects.has(error)) return Effect.die(error)
+      // A user's decline, rethrown from a wrapped tool, must keep ending the step instead of becoming tool output.
+      if (error instanceof Permission.DeclinedError || error instanceof Question.CancelledError)
+        return Effect.die(error)
       if (error instanceof Tool.Error) return Effect.fail(error)
       return Effect.fail(new Tool.Error({ message: error instanceof Error ? error.message : String(error), error }))
     }),
