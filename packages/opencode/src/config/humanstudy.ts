@@ -1,4 +1,4 @@
-// HumanStudy edition: baseline configuration (built-in provider; safe defaults are added in a later patch) that sits UNDER every other config source.
+// HumanStudy edition: baseline configuration that sits UNDER every other config source.
 // Config loading starts from this object, so global config, project config, OPENCODE_CONFIG,
 // OPENCODE_CONFIG_CONTENT and managed config all override it. See HUMANSTUDY.md.
 import type { Effect } from "effect"
@@ -61,6 +61,11 @@ export function humanstudyProvider(env: Record<string, string | undefined> = pro
 export function humanstudyDefaults(env: Record<string, string | undefined> = process.env): Info {
   const provider = humanstudyProvider(env)
   return {
+    autoupdate: false,
+    share: "disabled",
+    experimental: { openTelemetry: false },
+    // Ask before editing files, running shell commands, or touching paths outside the project.
+    permission: { edit: "ask", bash: "ask", external_directory: "ask" },
     ...(provider
       ? {
           provider,
