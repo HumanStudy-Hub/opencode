@@ -95,6 +95,8 @@ export class Info extends Schema.Class<Info>("Config.Provider")({
   name: Schema.String.pipe(optional),
   env: Schema.String.pipe(Schema.Array, optional),
   package: Schema.String.pipe(optional),
+  // Defaults for every model of this provider; model compatibility overrides individual fields.
+  compatibility: Compatibility.pipe(optional),
   ...Overlays,
   models: Schema.Record(Schema.String, Model).pipe(optional),
 }) {}

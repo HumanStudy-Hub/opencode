@@ -75,6 +75,49 @@ describe("ConfigProviderPlugin.Plugin", () => {
     }),
   )
 
+  it.effect("applies provider compatibility to every provider model with model overrides", () =>
+    Effect.gen(function* () {
+      const providers = yield* Provider.Service
+      const models = yield* Model.Service
+      const providerID = Provider.ID.make("proxy")
+      yield* providers.transform((editor) => {
+        editor.update(providerID, (provider) => {
+          provider.package = "@opencode/ai/providers/openai/chat"
+        })
+        editor.models.update(providerID, Model.ID.make("catalog"), (model) => {
+          model.compatibility = { maxTokensField: "max_tokens" }
+        })
+      })
+      yield* addPlugin([
+        new Document({
+          type: "document",
+          info: decode({
+            providers: {
+              proxy: {
+                compatibility: { supportsPromptCacheKey: false, requireFinishReason: false },
+                models: {
+                  configured: { compatibility: { supportsPromptCacheKey: true } },
+                },
+              },
+            },
+          }),
+        }),
+      ])
+
+      const catalog = required(yield* models.get(providerID, Model.ID.make("catalog")))
+      const configured = required(yield* models.get(providerID, Model.ID.make("configured")))
+      expect(catalog.compatibility).toEqual({
+        maxTokensField: "max_tokens",
+        supportsPromptCacheKey: false,
+        requireFinishReason: false,
+      })
+      expect(configured.compatibility).toEqual({ supportsPromptCacheKey: true, requireFinishReason: false })
+      // The OpenAI chat package enables the key by default; provider config overrides it on the runtime model.
+      expect((yield* ModelResolver.fromCatalogModel(catalog)).compatibility?.supportsPromptCacheKey).toBe(false)
+      expect((yield* ModelResolver.fromCatalogModel(configured)).compatibility?.supportsPromptCacheKey).toBe(true)
+    }),
+  )
+
   it.effect("keeps the provider websocket policy out of model settings", () =>
     Effect.gen(function* () {
       const providers = yield* Provider.Service

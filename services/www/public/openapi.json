@@ -14403,6 +14403,9 @@
           "package": {
             "type": "string"
           },
+          "compatibility": {
+            "$ref": "#/components/schemas/Model.Compatibility"
+          },
           "settings": {
             "$ref": "#/components/schemas/Config.Provider.Settings"
           },
