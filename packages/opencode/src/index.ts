@@ -35,7 +35,8 @@ const args = hideBin(process.argv)
 function show(out: string) {
   const text = out.trimStart()
   if (!text.startsWith("opencode ")) {
-    process.stderr.write(UI.logo() + EOL + EOL)
+    process.stderr.write(UI.logo() + EOL)
+    process.stderr.write("HumanStudy Hub edition (https://humanstudy-hub.com)" + EOL + EOL)
     process.stderr.write(text + EOL)
     return
   }
@@ -48,7 +49,7 @@ const cli = yargs(args)
   .wrap(100)
   .help("help", "show help")
   .alias("help", "h")
-  .version("version", "show version number", InstallationVersion)
+  .version("version", "show version number", `opencode-humanstudy ${InstallationVersion}`)
   .alias("version", "v")
   .option("print-logs", {
     describe: "print logs to stderr",
@@ -77,6 +78,7 @@ const cli = yargs(args)
     process.env.OPENCODE_PID = String(process.pid)
   })
   .usage("")
+  .epilog("opencode-humanstudy: the HumanStudy Hub edition of opencode (https://humanstudy-hub.com).")
   .completion("completion", "generate shell completion script")
   .command(AcpCommand)
   .command(McpCommand)

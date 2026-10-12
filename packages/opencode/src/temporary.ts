@@ -8,7 +8,7 @@ const cli = yargs(hideBin(process.argv))
   .wrap(100)
   .help("help", "show help")
   .alias("help", "h")
-  .version("version", "show version number", InstallationVersion)
+  .version("version", "show version number", `opencode-humanstudy ${InstallationVersion}`)
   .alias("version", "v")
   .option("print-logs", {
     describe: "print logs to stderr",
