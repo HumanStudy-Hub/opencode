@@ -1,7 +1,7 @@
 name: release-humanstudy
 run-name: "opencode-humanstudy ${{ github.ref_name }}"
 
-# Push a tag `hs-v<upstream-version>[-<revision>]` (e.g. hs-v1.18.21 or hs-v1.18.21-2) to
+# Push a tag `hs-v<upstream-version>[-<revision>]` (e.g. hs-v1.19.0 or hs-v1.19.0-2) to
 # build the desktop-app binaries and publish them as a GitHub release.
 # Manual runs (workflow_dispatch) build and upload workflow artifacts only; no release is made.
 on:
@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Upstream version to embed for a manual test build (default: package-derived 1.18.21)"
+        description: "Upstream version to embed for a manual test build (default: package-derived 1.19.0)"
         required: false
         type: string
 
@@ -35,10 +35,10 @@ jobs:
         shell: bash
         run: |
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            v="${GITHUB_REF_NAME#hs-v}"   # 1.18.21 or 1.18.21-2
+            v="${GITHUB_REF_NAME#hs-v}"   # 1.19.0 or 1.19.0-2
             v="${v%%-*}"                   # drop the HumanStudy revision suffix: the binary reports the upstream semver
           else
-            v="${INPUT_VERSION:-1.18.21}"
+            v="${INPUT_VERSION:-1.19.0}"
           fi
           echo "$v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "bad version: $v"; exit 1; }
           echo "version=$v" >> "$GITHUB_OUTPUT"

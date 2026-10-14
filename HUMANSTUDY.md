@@ -2,7 +2,7 @@
 
 A lightly patched fork of [anomalyco/opencode](https://github.com/anomalyco/opencode)
 (formerly sst/opencode), maintained by HumanStudy Hub as the agent kernel of the desktop app.
-Base: upstream tag `v1.18.21`. Branch: `humanstudy` (default). Everything not listed under
+Base: upstream tag `v1.19.0` (previous base `v1.18.21`, kept as tag `humanstudy-1.18.21-final`). Branch: `humanstudy` (default). Everything not listed under
 "Patches" is identical to upstream.
 
 ## Patches
@@ -12,7 +12,7 @@ Each patch is one commit on top of the upstream tag.
 ### 1. Branding
 
 - `opencode --version` prints `opencode-humanstudy <upstream-version>` (for example
-  `opencode-humanstudy 1.18.21`). The command name stays `opencode`, and
+  `opencode-humanstudy 1.19.0`). The command name stays `opencode`, and
   `InstallationVersion` (used for plugin compatibility, `/global/health`, user agents) stays the
   plain upstream semver, so a substring check for the version keeps working.
 - The CLI help banner adds a "HumanStudy Hub edition" line, and the help footer names the fork.
@@ -46,7 +46,7 @@ Same baseline object (lowest precedence, any config source overrides):
 - `experimental.openTelemetry: false`
 - `permission`: `edit: "ask"`, `bash: "ask"`, `external_directory: "ask"`
 
-Audit notes for upstream v1.18.21 (re-check on each rebase):
+Audit notes for upstream v1.19.0 (re-checked from v1.18.21; re-check on each rebase):
 
 - No analytics SDK exists in `packages/opencode` or `packages/core`. The only telemetry path is
   OTLP export, active only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, plus AI SDK spans
@@ -54,6 +54,22 @@ Audit notes for upstream v1.18.21 (re-check on each rebase):
 - Network calls that remain, none carrying user content: the model catalog from
   `https://models.opencode.ai` (set `OPENCODE_DISABLE_MODELS_FETCH=1` to stop it; an embedded
   snapshot is used), and the npm install of `@opencode-ai/plugin` into config dirs.
+- New in v1.19.0, checked: autoupdate no longer installs anything; it only checks
+  `Installation.latest()` and shows a notice in the TUI (`/update` dialog). `autoupdate: false` (our
+  default) and `OPENCODE_DISABLE_AUTOUPDATE` still skip the check. `opencode upgrade --major` (manual
+  CLI only) can fetch `https://opencode.ai/v2/install` or swap packages for OpenCode 2; nothing in
+  `serve` calls it. `POST /global/upgrade` now requires `{target: <semver>}`.
+- New in v1.19.0: config files and `OPENCODE_CONFIG_CONTENT` pass through `config/v2-compat.ts`,
+  which lowers OpenCode 2 keys (`snapshots`, `skills` arrays, `agents`, `model` objects, ...) to V1
+  and rejects V2 `permissions` (plural) with a config error. V1 `permission` and `provider/model`
+  strings are untouched. The humanstudy baseline is not routed through it.
+- New in v1.19.0: every provider fetch gets a default 300 s header timeout and 300 s
+  SSE chunk timeout (`provider.<id>.options.headerTimeout|chunkTimeout`, `false` disables).
+- No new analytics, share, telemetry or default-permission changes. New URLs in the diff are
+  Cloudflare AI Gateway / Azure provider endpoints (used only when those providers are configured)
+  and the OpenCode 2 links above.
+- Upstream tests that assert pristine defaults fail by design on this fork (`share` default,
+  `permission` key order, `permission` undefined in v2-compat loading): 3 tests in `test/config`.
 - Instructions: `AGENTS.md` is found by walking up from the working directory to the worktree root
   (upstream behaviour; falls back to `CLAUDE.md`, and also reads `~/.config/opencode/AGENTS.md` and
   `~/.claude/CLAUDE.md`). Skills load from `.opencode/{skill,skills}/**/SKILL.md` (also
@@ -85,8 +101,8 @@ Needs Bun matching `packageManager` in the root `package.json` (1.3.14 or newer,
 bun install
 cd packages/opencode
 # current platform only; OPENCODE_VERSION is the upstream semver, not a HumanStudy revision
-OPENCODE_VERSION=1.18.21 OPENCODE_CHANNEL=latest bun run script/build.ts --single --skip-install
-./dist/opencode-darwin-arm64/bin/opencode --version     # opencode-humanstudy 1.18.21
+OPENCODE_VERSION=1.19.0 OPENCODE_CHANNEL=latest bun run script/build.ts --single --skip-install
+./dist/opencode-darwin-arm64/bin/opencode --version     # opencode-humanstudy 1.19.0
 ```
 
 Notes:
@@ -103,8 +119,8 @@ Notes:
 Workflow: `.github/workflows/release-humanstudy.yml`.
 
 ```bash
-git tag hs-v1.18.21        # or hs-v1.18.21-2 for a second HumanStudy build of the same upstream version
-git push origin hs-v1.18.21
+git tag hs-v1.19.0         # or hs-v1.19.0-2 for a second HumanStudy build of the same upstream version
+git push origin hs-v1.19.0
 ```
 
 The tag builds every Bun target on one Linux runner (like upstream's `build-cli`), zips six of them
@@ -151,16 +167,18 @@ upstream release to this one:
 
 ```bash
 git remote add upstream https://github.com/anomalyco/opencode.git   # once
-git fetch upstream tag v1.19.0
-git checkout -b humanstudy-1.19.0 humanstudy
-git rebase --onto v1.19.0 v1.18.21 humanstudy-1.19.0   # replays the HumanStudy commits
+git fetch upstream --tags            # the clone is shallow: if `git merge-base` finds nothing,
+                                     # deepen with `git fetch upstream --shallow-exclude=<older tag>`
+git branch humanstudy-<next> humanstudy
+git rebase --onto <next-tag> v1.19.0 humanstudy-<next>   # replays the HumanStudy commits
 ```
 
 Then: fix conflicts (the likely ones are `packages/opencode/src/index.ts` and
 `packages/opencode/src/config/config.ts`), re-run the build, re-check the audit notes in patch 3,
-update the "Base" tag at the top of this file, `git push -f origin humanstudy-1.19.0:humanstudy` (or
-fast-forward after review), and tag `hs-v1.19.0`. The patch commits are the ones in
-`git log v1.18.21..humanstudy` that touch only the files listed here.
+update the "Base" tag at the top of this file, tag the old head `humanstudy-<old>-final`, push
+the new branch over `humanstudy` with `--force-with-lease`, and tag `hs-v<next>`. Upstream ships
+v1 releases from a `v1` branch (v2.x tags are a separate line, do not rebase onto them). The patch
+commits are the ones in `git log v1.19.0..humanstudy` that touch only the files listed here.
 
 Files touched relative to upstream: `HUMANSTUDY.md`, `.github/workflows/release-humanstudy.yml`,
 `packages/opencode/src/index.ts`, `packages/opencode/src/temporary.ts`,
