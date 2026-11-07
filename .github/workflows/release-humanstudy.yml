@@ -2,7 +2,7 @@ name: release-humanstudy
 run-name: "opencode-humanstudy ${{ github.ref_name }}"
 
 # Push a tag `hs-v<upstream-version>[-<revision>]` (e.g. hs-v1.19.0 or hs-v1.19.0-2) to
-# build the desktop-app binaries and publish them as a GitHub release.
+# build the desktop-app binaries (and the Linux ones the web sandbox runs) and publish them as a GitHub release.
 # Manual runs (workflow_dispatch) build and upload workflow artifacts only; no release is made.
 on:
   push:
@@ -59,7 +59,7 @@ jobs:
           set -euo pipefail
           mkdir -p release
           # upstream target dir -> HumanStudy asset name
-          for t in darwin-arm64 darwin-x64 darwin-x64-baseline windows-x64 windows-x64-baseline windows-arm64; do
+          for t in darwin-arm64 darwin-x64 darwin-x64-baseline windows-x64 windows-x64-baseline windows-arm64 linux-x64 linux-x64-baseline linux-arm64; do
             src="packages/opencode/dist/opencode-${t}/bin"
             test -d "$src" || { echo "missing build output: $src"; exit 1; }
             (cd "$src" && zip -qr "$GITHUB_WORKSPACE/release/opencode-humanstudy-${t}.zip" .)
